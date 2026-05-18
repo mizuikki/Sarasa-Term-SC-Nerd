@@ -37,18 +37,19 @@ run_one() {
   # Ensure build uses local font-patcher copy from WORK_DIR
   (cd "${WORK_DIR}" && SARASA_DIR="sarasa" bash -xeu scripts/build)
 
+  if [[ -n "${out_prefix}" ]]; then
+    (
+      cd "${WORK_DIR}/sarasa-nerd"
+      mv SarasaTermSCNerd.ttf.tar.gz "${out_prefix}.ttf.tar.gz"
+      mv SarasaTermSCNerd.ttc.tar.gz "${out_prefix}.ttc.tar.gz"
+      mv SarasaTermSCNerd.ttf.7z "${out_prefix}.ttf.7z"
+      mv SarasaTermSCNerd.ttc.7z "${out_prefix}.ttc.7z"
+    )
+  fi
+
   mkdir -p "${WORK_DIR}/dist"
   cp -f "${WORK_DIR}/sarasa-nerd/"SarasaTermSCNerd*.tar.gz "${WORK_DIR}/dist/"
   cp -f "${WORK_DIR}/sarasa-nerd/"SarasaTermSCNerd*.7z "${WORK_DIR}/dist/"
-
-  if [[ -n "${out_prefix}" ]]; then
-    (
-      cd "${WORK_DIR}/dist"
-      for f in SarasaTermSCNerd.*; do
-        mv "$f" "${out_prefix}${f#SarasaTermSCNerd}"
-      done
-    )
-  fi
 }
 
 echo "[build] hinted from: ${SARASA_DIR_HINTED}"
