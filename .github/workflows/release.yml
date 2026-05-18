@@ -19,6 +19,8 @@ jobs:
         run: sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip jq
 
       - name: Refresh upstream + build assets
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           scripts/refresh-upstream.sh
           scripts/build-release-assets.sh
