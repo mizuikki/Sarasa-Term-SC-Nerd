@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import pathlib
+import re
+import sys
+
+
+def _read_text(path: pathlib.Path) -> str:
+    return path.read_text(encoding="utf-8", errors="replace")
+
+
+def _write_text(path: pathlib.Path, data: str) -> None:
+    path.write_text(data, encoding="utf-8", newline="\n")
+
+
+def _extract_insert_block(patch_text: str) -> str:
+    """
+    Extract the exact inserted list that replaces the upstream Material line.
+    This repository's patch replaces the upstream single 'Material' entry with
+    many narrowed ranges to avoid glyph overflow. That is the most likely hunk
+    to change upstream; we re-apply it by locating the block in the patch.
+    """
+    lines = patch_text.splitlines()
+    start = None
+    end = None
+    for i, line in enumerate(lines):
+        if "Material legacy" in line and line.startswith(" "):
+            # Context line in the patch hunk
+            start = i
+            continue
+        if start is not None and line.startswith("@@"):
+            # next hunk starts
+            end = i
+            break
+    if start is None:
+        raise ValueError("Could not locate Material legacy hunk in patch")
+    if end is None:
+        end = len(lines)
+    hunk = lines[start:end]
+    inserted = []
+    for line in hunk:
+        if line.startswith("+") and "MaterialDesignIconsDesktop.ttf" in line:
+            inserted.append(line[1:])
+    if not inserted:
+        raise ValueError("Could not extract inserted Material ranges from patch")
+    return "\n".join(inserted) + "\n"
+
+
+def _apply_simple_replacements(upstream_text: str, patch_text: str) -> str:
+    """
+    Apply the bulk of our changes by extracting the added lines from the patch
+    and inserting them around stable anchors. This avoids depending on exact
+    upstream line numbers.
+    """
+    out = upstream_text
+
+    # 1) Add SARASA globals after projectNameSingular definition.
+    sarasa_globals = (
+        "\n"
+        "# FOR SARASA\n"
+        "projectName = \"Nerds\"\n"
+        "projectNameAbbreviation = \"\"\n"
+        "projectNameSingular = projectName[:-1]\n"
+        "subFamily = \"\"\n"
+        "looseName = \"Sarasa Term SC Nerd\"\n"
+        "compactName = \"SarasaTermSCNerd\"\n"
+    )
+    anchor = 'projectNameSingular = projectName[:-1]\n'
+    if sarasa_globals not in out:
+        if anchor not in out:
+            raise ValueError("Anchor for SARASA globals not found")
+        out = out.replace(anchor, anchor + sarasa_globals, 1)
+
+    # 2) Force monospaced checks for Sarasa.
+    out = re.sub(
+        r"return 1 if panose_mono else 0\n",
+        "\n    # FOR SARASA\n    return 1\n    # return 1 if panose_mono else 0\n",
+        out,
+        count=1,
+    )
+    out = out.replace(
+        "# Some fonts lie (or have not any Panose flag set), spot check monospaced:\n",
+        "# Some fonts lie (or have not any Panose flag set), spot check monospaced:\n\n"
+        "    # FOR SARASA\n"
+        "    return (True, None)\n\n",
+        1,
+    )
+
+    # 3) Output filename normalization (SarasaTermSCNerd-Subfamily.ttf).
+    out = out.replace(
+        "sanitize_filename(fontname) + self.args.extension))\n",
+        "sanitize_filename(fontname) + self.args.extension))\n\n"
+        "            # FOR SARASA\n"
+        "            outfile = os.path.normpath(os.path.join(\n"
+        "                sanitize_filename(self.args.outputdir, True),\n"
+        "                f'{compactName}-{self.get_subfamily()}.ttf'\n"
+        "            ))\n",
+        1,
+    )
+
+    # 4) Post-processing: build hdmx and fix post table.
+    out = out.replace(
+        "print(message)\n",
+        "print(message)\n\n"
+        "        # FOR SARASA: build hdmx table\n"
+        "        print(\"Building hdmx table and fix post table\")\n"
+        "        post_fix(self.args.font, outfile)\n\n",
+        1,
+    )
+
+    # 5) Clean suffix naming to keep family names stable.
+    out = out.replace(
+        "verboseAdditionalFontNameSuffix += \" Plus Weather Icons\"\n",
+        "verboseAdditionalFontNameSuffix += \" Plus Weather Icons\"\n\n"
+        "        # FOR SARASA: clean file name\n"
+        "        additionalFontNameSuffix = \"\" + projectNameSingular\n"
+        "        verboseAdditionalFontNameSuffix = \"\" + projectNameSingular\n",
+        1,
+    )
+    out = out.replace(
+        "variant_full = \"\"\n",
+        "variant_full = \"\"\n\n"
+        "        # FOR SARASA: clean file name\n"
+        "        variant_abbrev = \"\"\n"
+        "        variant_full = \"\"\n",
+        1,
+    )
+    out = out.replace(
+        "additionalFontNameSuffix = \" \" + projectNameSingular + variant_full + additionalFontNameSuffix\n",
+        "additionalFontNameSuffix = \" \" + projectNameSingular + variant_full + additionalFontNameSuffix\n\n"
+        "        # FOR SARASA: clean file name\n"
+        "        additionalFontNameSuffix = \"\" + projectNameSingular\n"
+        "        verboseAdditionalFontNameSuffix = \"\" + projectNameSingular\n",
+        1,
+    )
+
+    # 6) Family fallback style derived from filename subfamily.
+    out = out.replace(
+        "familyname = fontname\n",
+        "familyname = fontname\n\n"
+        "        # FOR SARASA\n"
+        "        familyname = looseName\n"
+        "        fallbackStyle = self.get_subfamily()\n",
+        1,
+    )
+
+    # 7) Comment string customizations.
+    out = out.replace(
+        "projectInfo = (\n"
+        "            \"Patched with '\" + projectName + \" Patcher' (https://github.com/ryanoasis/nerd-fonts)\\n\\n\"\n",
+        "projectInfo = (\n"
+        "            # \"Patched with '\" + projectName + \" Patcher' (https://github.com/ryanoasis/nerd-fonts)\\n\\n\"\n"
+        "            \"Patched with 'Sarasa Term SC Nerd Patcher' (https://github.com/laishulu/Sarasa-Term-SC-Nerd)\\n\\n\"\n",
+        1,
+    )
+    out = out.replace(
+        "\"* Development Website: https://github.com/ryanoasis/nerd-fonts\\n\"\n"
+        "            \"* Changelog: https://github.com/ryanoasis/nerd-fonts/blob/-/changelog.md\"",
+        "# \"* Development Website: https://github.com/ryanoasis/nerd-fonts\\n\"\n"
+        "            # \"* Changelog: https://github.com/ryanoasis/nerd-fonts/blob/-/changelog.md\"",
+        1,
+    )
+
+    # 8) Override SFNT naming + unique id.
+    if "uniqueID = f\"{font.fullname}; Sarasa v{self.sourceFont.version}\"" not in out:
+        marker = "n.rename_font(font)\n\n"
+        insert = (
+            "\n"
+            "        # FOR SARASA\n"
+            "        font.familyname = looseName\n"
+            "        subFamily = self.get_subfamily()\n"
+            "        font.fullname = f\"{looseName} {en_subfamily(subFamily)}\"\n"
+            "        font.fontname = f\"{compactName}-{subFamily}\"\n"
+            "        uniqueID = f\"{font.fullname}; Sarasa v{self.sourceFont.version}\"\n"
+            "\n"
+            "        font.appendSFNTName(str(\"English (US)\"), str(\"UniqueID\"), uniqueID)\n"
+            "        font.appendSFNTName(str(\"Chinese (PRC)\"), str(\"UniqueID\"), uniqueID)\n"
+            "        font.appendSFNTName(str('English (US)'), str('Fullname'), font.fullname)\n"
+            "        font.appendSFNTName(str(\"Chinese (PRC)\"), str(\"Fullname\"), zh_family(font.fullname))\n"
+            "\n"
+            "        font.appendSFNTName(str('English (US)'), str('Family'), font.familyname)\n"
+            "        font.appendSFNTName(str('Chinese (PRC)'), str('Family'), zh_family(font.familyname))\n"
+            "        font.appendSFNTName(str('English (US)'), str('SubFamily'), en_subfamily(subFamily))\n"
+            "        font.appendSFNTName(str('Chinese (PRC)'), str('SubFamily'), zh_subfamily(subFamily))\n"
+            "\n"
+            "        font.appendSFNTName(str('English (US)'), str('Preferred Family'), font.familyname)\n"
+            "        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Family'), zh_family(font.familyname))\n"
+            "        font.appendSFNTName(str('English (US)'), str('Preferred Styles'), en_subfamily(subFamily))\n"
+            "        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Styles'), zh_subfamily(subFamily))\n"
+            "\n"
+        )
+        if marker not in out:
+            raise ValueError("Could not find rename_font marker for SFNT override insertion")
+        out = out.replace(marker, marker + insert, 1)
+
+    # 9) Add Chinese version name.
+    out = out.replace(
+        "self.sourceFont.appendSFNTName(str('English (US)'), str('Version'), \"Version \" + self.sourceFont.version)\n",
+        "self.sourceFont.appendSFNTName(str('English (US)'), str('Version'), \"Version \" + self.sourceFont.version)\n\n"
+        "        # FOR SARASA: set version\n"
+        "        self.sourceFont.appendSFNTName(str('Chinese (PRC)'), str('Version'), \"版本 \" + self.sourceFont.version)\n\n",
+        1,
+    )
+
+    # 10) Force width == 1 cell.
+    out = out.replace(
+        "if self.args.single or ('pa' not in stretch and '2' not in stretch) or '1' in stretch:\n"
+        "            return 1\n"
+        "        return 2\n",
+        "\n        # FOR SARASA\n        return 1\n\n"
+        "        # if self.args.single or ('pa' not in stretch and '2' not in stretch) or '1' in stretch:\n"
+        "        #     return 1\n"
+        "        # return 2\n",
+        1,
+    )
+
+    # 11) Add get_subfamily() helper.
+    if "def get_subfamily(self):" not in out:
+        marker = "        return None\n\n"
+        insert = (
+            "    # FOR SARASA: extract subFamily from font name\n"
+            "    def get_subfamily(self):\n"
+            "        file_name = self.args.font.split('.')[-2]\n"
+            "        return file_name.split('-')[-1]\n\n"
+        )
+        if marker not in out:
+            raise ValueError("Could not find insertion marker for get_subfamily")
+        out = out.replace(marker, marker + insert, 1)
+
+    # 12) Inject zh/en name helpers + post_fix/hmdx at end of file, before __main__.
+    if "def post_fix(" not in out:
+        main_marker = "if __name__ == \"__main__\":\n"
+        if main_marker not in out:
+            raise ValueError("Could not locate __main__ marker for helper insertion")
+        helper_block = _read_text(pathlib.Path(__file__).with_name("sarasa_helpers.py"))
+        out = out.replace(main_marker, helper_block + "\n\n" + main_marker, 1)
+
+    # 13) Material icon range narrowing (replace single upstream material entry).
+    insert_material_block = _extract_insert_block(patch_text)
+    out = re.sub(
+        r"^\s*\{\s*'Enabled': self\.args\.material,.*'Filename': \"materialdesign/MaterialDesignIconsDesktop\.ttf\".*\}\s*,\s*$",
+        lambda m: insert_material_block.rstrip("\n"),
+        out,
+        flags=re.MULTILINE,
+        count=1,
+    )
+
+    return out
+
+
+def main() -> int:
+    p = argparse.ArgumentParser()
+    p.add_argument("--upstream", required=True, type=pathlib.Path)
+    p.add_argument("--patch", required=True, type=pathlib.Path)
+    p.add_argument("--out", required=True, type=pathlib.Path)
+    args = p.parse_args()
+
+    upstream_text = _read_text(args.upstream)
+    patch_text = _read_text(args.patch)
+    out_text = _apply_simple_replacements(upstream_text, patch_text)
+
+    _write_text(args.out, out_text)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

@@ -3,13 +3,13 @@
 # Get the most recent tag
 TAG=$(git describe --tags --abbrev=0)
 
-# Remove 'v' prefix if present
-VERSION=$(echo "$TAG" | sed 's/^v//')
+# Keep leading 'v' in VERSION, because our tag names are vX.Y.Z
+VERSION="$TAG"
 
 # Function to download asset and calculate SHA256
 download_and_hash() {
     local asset_name=$1
-    local url="https://github.com/laishulu/Sarasa-Term-SC-Nerd/releases/download/v${VERSION}/${asset_name}"
+    local url="https://github.com/mizuikk/Sarasa-Term-SC-Nerd/releases/download/${VERSION}/${asset_name}"
     local tmp_file="/tmp/${asset_name}"
 
     # Download the asset

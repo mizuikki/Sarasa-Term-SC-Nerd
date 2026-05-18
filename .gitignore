@@ -1,0 +1,11 @@
+## Build / temp artifacts
+tmp/
+sarasa/
+sarasa-nerd/
+dist/
+__pycache__/
+
+## Archives / downloaded assets
+*.7z
+*.zip
+*.tar.gz

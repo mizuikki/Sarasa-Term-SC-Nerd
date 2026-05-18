@@ -1,6 +1,6 @@
 name: Release
 
-on:
+"on":
   push:
     tags:
       - "v*"
@@ -15,26 +15,10 @@ jobs:
       - name: Install deps
         run: sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip jq
 
-      - name: Download Sarasa Gothic
+      - name: Refresh upstream + build assets
         run: |
-          wget -q $(curl 'https://api.github.com/repos/be5invis/Sarasa-Gothic/releases' | jq -r '.[0].assets | map(.browser_download_url) | map(select(test("SarasaTermSC-TTF-[0-9.]+\\.7z"))) | .[0]')
-          7zr x Sarasa*.7z
-          mkdir sarasa
-          mv Sarasa*.ttf sarasa
-
-      - name: Download Font Patcher
-        run: |
-          wget -q https://github.com/ryanoasis/nerd-fonts/raw/refs/heads/master/FontPatcher.zip
-          unzip FontPatcher.zip
-
-      - name: Copy Scripts
-        run: cp scripts/font-patcher font-patcher && cp scripts/otf2otc.py otf2otc.py
-
-      - name: Build Nerd Font
-        run: bash -xeu scripts/build
-
-      - name: Display structure of the directory
-        run: ls -R
+          scripts/refresh-upstream.sh
+          scripts/build-release-assets.sh
 
       - name: Get version
         id: get_version
@@ -55,43 +39,11 @@ jobs:
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
           files: |
-            sarasa-nerd/SarasaTermSCNerd.ttf.tar.gz
-            sarasa-nerd/SarasaTermSCNerd.ttc.tar.gz
-            sarasa-nerd/SarasaTermSCNerd.ttf.7z
-            sarasa-nerd/SarasaTermSCNerd.ttc.7z
-
-      - name: Clear files
-        run: |
-          rm -rvf *.7z
-          rm -rvf *.ttf
-          rm -rvf sarasa
-          rm -rvf sarasa-nerd
-
-      - name: Download Sarasa Gothic Unhinted
-        run: |
-          wget -q $(curl 'https://api.github.com/repos/be5invis/Sarasa-Gothic/releases' | jq -r '.[0].assets | map(.browser_download_url) | map(select(test("SarasaTermSC-TTF-Unhinted-[0-9.]+\\.7z"))) | .[0]')
-          7zr x Sarasa*.7z
-          mkdir sarasa
-          mv Sarasa*.ttf sarasa
-
-      - name: Build Nerd Font
-        run: bash -xeu scripts/build
-
-      - name: Rename file
-        run: |
-          cd sarasa-nerd
-          mv SarasaTermSCNerd.ttf.tar.gz SarasaTermSCNerd-Unhinted.ttf.tar.gz
-          mv SarasaTermSCNerd.ttc.tar.gz SarasaTermSCNerd-Unhinted.ttc.tar.gz
-          mv SarasaTermSCNerd.ttf.7z SarasaTermSCNerd-Unhinted.ttf.7z
-          mv SarasaTermSCNerd.ttc.7z SarasaTermSCNerd-Unhinted.ttc.7z
-          cd ..
-
-      - name: Upload Release Asset
-        uses: softprops/action-gh-release@v2
-        with:
-          token: ${{ secrets.RELEASE_TOKEN }}
-          files: |
-            sarasa-nerd/SarasaTermSCNerd-Unhinted.ttf.tar.gz
-            sarasa-nerd/SarasaTermSCNerd-Unhinted.ttc.tar.gz
-            sarasa-nerd/SarasaTermSCNerd-Unhinted.ttf.7z
-            sarasa-nerd/SarasaTermSCNerd-Unhinted.ttc.7z
+            dist/SarasaTermSCNerd.ttf.tar.gz
+            dist/SarasaTermSCNerd.ttc.tar.gz
+            dist/SarasaTermSCNerd.ttf.7z
+            dist/SarasaTermSCNerd.ttc.7z
+            dist/SarasaTermSCNerd-Unhinted.ttf.tar.gz
+            dist/SarasaTermSCNerd-Unhinted.ttc.tar.gz
+            dist/SarasaTermSCNerd-Unhinted.ttf.7z
+            dist/SarasaTermSCNerd-Unhinted.ttc.7z

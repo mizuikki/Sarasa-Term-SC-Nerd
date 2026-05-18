@@ -10,9 +10,9 @@ fonts`合并入`Sarasa Term SC`, 再经过一些后处理，而最后形成的�
 
 上游版本：
 
-- Sarasa Term SC：1.0.27
-- Nerd Font: 3.3.0
-- Font Patcher: 4.16.1
+- Sarasa Term SC：1.0.37
+- Nerd Font: 3.4.0
+- Font Patcher: 4.20.3
 
 ## 字体效果
 
@@ -55,7 +55,7 @@ fonts`合并入`Sarasa Term SC`, 再经过一些后处理，而最后形成的�
   brew install font-sarasa-nerd
   ```
 - 手工下载安装：
-  - 前往 [release](https://github.com/laishulu/Sarasa-Term-SC-Nerd/releases) 下载
+  - 前往 [release](https://github.com/mizuikk/Sarasa-Term-SC-Nerd/releases) 下载
   - 每个`ttf`文件是一个字体样式，`ttc`文件是所有样式的合集。
   
 **注意**:
@@ -71,21 +71,11 @@ fonts`合并入`Sarasa Term SC`, 再经过一些后处理，而最后形成的�
 # Install deps
 sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip jq
 
-# Download Sarasa Gothic
-wget -q $(curl 'https://api.github.com/repos/be5invis/Sarasa-Gothic/releases' | jq -r '.[0].assets | map(.browser_download_url) | map(select(test("SarasaTermSC-TTF-[0-9.]+\\.7z"))) | .[0]')
-7zr x Sarasa*.7z
-mkdir sarasa
-mv Sarasa*.ttf sarasa
+# Refresh upstream assets + regenerate scripts/font-patcher
+scripts/refresh-upstream.sh
 
-# Download Font Patcher
-wget -q https://github.com/ryanoasis/nerd-fonts/raw/refs/heads/master/FontPatcher.zip
-unzip FontPatcher.zip
-
-# Copy Scripts
-cp scripts/font-patcher font-patcher && cp scripts/otf2otc.py otf2otc.py
-
-# name: Build Nerd
-bash -xeu scripts/build
+# Build release assets (hinted + unhinted) into ./dist
+scripts/build-release-assets.sh
 ```
 
 在 macOS 中，注意需要使用 fontforge 自带的 python
