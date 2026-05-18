@@ -4,10 +4,13 @@ name: Release
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -28,16 +31,15 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          token: ${{ secrets.RELEASE_TOKEN }}
           name: Release ${{ steps.get_version.outputs.VERSION }}
           tag_name: ${{ steps.get_version.outputs.VERSION }}
           draft: false
           prerelease: false
+          fail_on_unmatched_files: true
 
       - name: Upload Release Asset
         uses: softprops/action-gh-release@v2
         with:
-          token: ${{ secrets.RELEASE_TOKEN }}
           files: |
             dist/SarasaTermSCNerd.ttf.tar.gz
             dist/SarasaTermSCNerd.ttc.tar.gz
@@ -47,3 +49,4 @@ jobs:
             dist/SarasaTermSCNerd-Unhinted.ttc.tar.gz
             dist/SarasaTermSCNerd-Unhinted.ttf.7z
             dist/SarasaTermSCNerd-Unhinted.ttc.7z
+          fail_on_unmatched_files: true
