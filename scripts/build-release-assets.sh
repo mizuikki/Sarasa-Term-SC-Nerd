@@ -6,14 +6,27 @@ WORK_DIR="${WORK_DIR:-${ROOT_DIR}}"
 
 SARASA_DIR_HINTED="${SARASA_DIR_HINTED:-${ROOT_DIR}/tmp/sarasa}"
 SARASA_DIR_UNHINTED="${SARASA_DIR_UNHINTED:-${ROOT_DIR}/tmp/sarasa-unhinted}"
+FONT_PATCHER_DIR="${FONT_PATCHER_DIR:-${ROOT_DIR}/tmp/FontPatcher}"
 
 run_one() {
   local sarasa_dir="$1"
   local out_prefix="$2"
 
   rm -rf "${WORK_DIR}/sarasa" "${WORK_DIR}/sarasa-nerd" || true
+  rm -rf "${WORK_DIR}/src" "${WORK_DIR}/bin" "${WORK_DIR}/glyphnames.json" "${WORK_DIR}/readme.md" || true
   mkdir -p "${WORK_DIR}/sarasa"
   cp -f "${sarasa_dir}"/*.ttf "${WORK_DIR}/sarasa/"
+
+  if [[ ! -d "${FONT_PATCHER_DIR}/src" ]]; then
+    echo "[build] ERROR: missing FontPatcher resources in ${FONT_PATCHER_DIR}"
+    echo "[build]        run scripts/refresh-upstream.sh first"
+    exit 1
+  fi
+
+  # Bring Nerd Fonts resources next to font-patcher, then overwrite the patcher script.
+  cp -R "${FONT_PATCHER_DIR}/src" "${WORK_DIR}/"
+  cp -R "${FONT_PATCHER_DIR}/bin" "${WORK_DIR}/"
+  cp -f "${FONT_PATCHER_DIR}/glyphnames.json" "${WORK_DIR}/glyphnames.json"
 
   cp -f "${ROOT_DIR}/scripts/font-patcher" "${WORK_DIR}/font-patcher"
   chmod +x "${WORK_DIR}/font-patcher"
