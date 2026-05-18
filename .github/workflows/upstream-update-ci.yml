@@ -1,0 +1,46 @@
+name: Upstream Update CI
+
+"on":
+  pull_request:
+    paths:
+      - "scripts/upstream-versions.env"
+      - "scripts/refresh-upstream.sh"
+      - "scripts/build-release-assets.sh"
+      - "scripts/font-patcher"
+      - "scripts/bump-upstream-versions.sh"
+      - "font-patcher.patch"
+      - "scripts/apply-font-patcher-patch.py"
+      - "scripts/sarasa_helpers.py"
+      - "scripts/build"
+  workflow_dispatch:
+
+concurrency:
+  group: upstream-update-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install deps
+        run: sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip jq unzip
+
+      - name: Refresh upstream + build assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          scripts/refresh-upstream.sh
+          scripts/build-release-assets.sh
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+          if-no-files-found: error
+

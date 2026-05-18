@@ -12,6 +12,14 @@ scripts/build-release-assets.sh
 ls -la dist/
 ```
 
+### Check upstream updates (CI helper)
+
+This checks the latest upstream release tags and refreshes `scripts/font-patcher` when needed.
+
+```bash
+scripts/bump-upstream-versions.sh --dry-run
+```
+
 ### Verify a published release uses expected upstream versions
 
 ```bash
@@ -100,6 +108,21 @@ scripts/verify-release-assets.sh --tag v2.4.0
 scripts/verify-release-assets.sh --tag v2.4.0 --workdir tmp/verify-v2.4.0 --keep
 ```
 
+### `bump-upstream-versions.sh`
+
+CI-oriented helper that:
+
+- Checks latest upstream release tags for Sarasa and Nerd Fonts
+- Updates `scripts/upstream-versions.env` when new upstream versions exist
+- Runs `scripts/refresh-upstream.sh` to regenerate `scripts/font-patcher`
+
+Usage:
+
+```bash
+scripts/bump-upstream-versions.sh --dry-run
+scripts/bump-upstream-versions.sh
+```
+
 ### `upstream-versions.env`
 
 Central place to pin upstream versions and asset names used by `refresh-upstream.sh`.
@@ -127,4 +150,3 @@ Helper used during packaging to build TTC collections from TTF inputs.
 ### `update-formula-sha256.sh`
 
 Utility for updating SHA256 values in a Homebrew formula/cask to match the latest GitHub release artifacts.
-

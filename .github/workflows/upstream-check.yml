@@ -1,0 +1,51 @@
+name: Upstream Check
+
+"on":
+  schedule:
+    # Weekly on Monday 01:15 UTC (09:15 Asia/Shanghai)
+    - cron: "15 1 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: upstream-check
+  cancel-in-progress: true
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install deps
+        run: sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip jq unzip
+
+      - name: Check upstream + refresh patcher
+        id: bump
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/bump-upstream-versions.sh --write-github-output
+
+      - name: Create Pull Request
+        if: steps.bump.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ github.token }}
+          branch: automation/upstream-update
+          delete-branch: true
+          commit-message: >-
+            chore: bump upstream fonts (Sarasa ${{ steps.bump.outputs.sarasa_new }}, Nerd ${{ steps.bump.outputs.nerd_new }})
+          title: >-
+            chore: bump upstream fonts (Sarasa ${{ steps.bump.outputs.sarasa_new }}, Nerd ${{ steps.bump.outputs.nerd_new }})
+          body: |
+            Automated upstream version bump.
+
+            - Sarasa-Gothic: `${{ steps.bump.outputs.sarasa_old }}` → `${{ steps.bump.outputs.sarasa_new }}`
+            - nerd-fonts: `${{ steps.bump.outputs.nerd_old }}` → `${{ steps.bump.outputs.nerd_new }}`
+
+            This PR updates `scripts/upstream-versions.env` and regenerates `scripts/font-patcher`.
+            CI should validate a full build before merging (glyph limit regressions are possible).
+
