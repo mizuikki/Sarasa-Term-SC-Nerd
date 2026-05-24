@@ -55,7 +55,7 @@ fonts`合并入`Sarasa Term SC`, 再经过一些后处理，而最后形成的�
   brew install font-sarasa-nerd
   ```
 - 手工下载安装：
-  - 前往 [release](https://github.com/mizuikk/Sarasa-Term-SC-Nerd/releases) 下载
+  - 前往 [release](https://github.com/mizuikki/Sarasa-Term-SC-Nerd/releases) 下载
   - 每个`ttf`文件是一个字体样式，`ttc`文件是所有样式的合集。
   
 **注意**:

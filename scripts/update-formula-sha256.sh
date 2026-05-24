@@ -9,7 +9,7 @@ VERSION="$TAG"
 # Function to download asset and calculate SHA256
 download_and_hash() {
     local asset_name=$1
-    local url="https://github.com/mizuikk/Sarasa-Term-SC-Nerd/releases/download/${VERSION}/${asset_name}"
+    local url="https://github.com/mizuikki/Sarasa-Term-SC-Nerd/releases/download/${VERSION}/${asset_name}"
     local tmp_file="/tmp/${asset_name}"
 
     # Download the asset

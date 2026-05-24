@@ -14,7 +14,7 @@ Usage:
 
 Examples:
   scripts/verify-release-assets.sh --tag v2.4.0
-  scripts/verify-release-assets.sh --tag v2.4.0 --repo mizuikk/Sarasa-Term-SC-Nerd
+  scripts/verify-release-assets.sh --tag v2.4.0 --repo mizuikki/Sarasa-Term-SC-Nerd
 
 Notes:
   - Requires: gh, tar, python3, and Python module 'fontTools' (fonttools / ttx).
