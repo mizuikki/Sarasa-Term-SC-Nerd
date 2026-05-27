@@ -1,4 +1,4 @@
-name: Upstream Update CI
+name: CI - Upstream Build
 
 "on":
   pull_request:
@@ -15,7 +15,7 @@ name: Upstream Update CI
   workflow_dispatch:
 
 concurrency:
-  group: upstream-update-ci-${{ github.ref }}
+  group: ci-upstream-build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -28,11 +28,11 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Install deps
-        run: sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip jq unzip
+        run: sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip-full jq unzip
 
       - name: Refresh upstream + build assets
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN != '' && secrets.UPSTREAM_BOT_TOKEN || github.token }}
         run: |
           scripts/refresh-upstream.sh
           scripts/build-release-assets.sh
@@ -44,3 +44,8 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
+      - name: Enable auto-merge for automation PR (squash)
+        if: github.event_name == 'pull_request' && github.head_ref == 'automation/upstream-update' && secrets.UPSTREAM_BOT_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN }}
+        run: gh pr merge --repo "${{ github.repository }}" --auto --squash --delete-branch "${{ github.event.pull_request.html_url }}"

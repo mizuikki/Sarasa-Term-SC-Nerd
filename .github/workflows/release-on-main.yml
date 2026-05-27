@@ -1,0 +1,97 @@
+name: Release - Upstream Versions
+
+"on":
+  push:
+    branches:
+      - main
+    paths:
+      - "scripts/upstream-versions.env"
+      - "scripts/refresh-upstream.sh"
+      - "scripts/build-release-assets.sh"
+      - "scripts/font-patcher"
+      - "scripts/bump-upstream-versions.sh"
+      - "font-patcher.patch"
+      - "scripts/apply-font-patcher-patch.py"
+      - "scripts/sarasa_helpers.py"
+      - "scripts/build"
+  workflow_dispatch:
+
+concurrency:
+  group: release-on-main-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Publish releases using PAT so this workflow can create a tag + release.
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Ensure UPSTREAM_BOT_TOKEN is set
+        env:
+          TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN }}
+        run: |
+          if [[ -z "${TOKEN}" ]]; then
+            echo "ERROR: missing required repo secret: UPSTREAM_BOT_TOKEN" >&2
+            exit 1
+          fi
+
+      - name: Install deps
+        run: sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip-full jq unzip
+
+      - name: Compute release tag from upstream versions
+        id: tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          source scripts/upstream-versions.env
+          sarasa="${SARASA_TAG#v}"
+          nerd="${NERD_TAG#v}"
+          tag="v${sarasa}-nf${nerd}"
+          title="Sarasa ${SARASA_TAG} + Nerd ${NERD_TAG}"
+          {
+            echo "tag=${tag}"
+            echo "title=${title}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Skip if release already exists
+        id: exists
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view --repo "${{ github.repository }}" "${{ steps.tag.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Refresh upstream + build assets
+        if: steps.exists.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN }}
+        run: |
+          scripts/refresh-upstream.sh
+          scripts/build-release-assets.sh
+
+      - name: Create GitHub Release (tagged to this commit)
+        if: steps.exists.outputs.exists != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${{ steps.tag.outputs.tag }}"
+          title="${{ steps.tag.outputs.title }}"
+          sarasa="$(grep -E '^SARASA_TAG=' scripts/upstream-versions.env | cut -d= -f2-)"
+          nerd="$(grep -E '^NERD_TAG=' scripts/upstream-versions.env | cut -d= -f2-)"
+          patcher="$(grep -E '^FONT_PATCHER_VERSION=' scripts/upstream-versions.env | cut -d= -f2-)"
+          notes="$(printf 'Automated build from upstream pins in `scripts/upstream-versions.env`.\n\n- Sarasa: %s\n- Nerd Fonts: %s\n- Font Patcher: %s\n- Commit: %s\n' "${sarasa}" "${nerd}" "${patcher}" "${GITHUB_SHA}")"
+          gh release create --repo "${{ github.repository }}" "${tag}" dist/* \
+            --target "${GITHUB_SHA}" \
+            --title "${title}" \
+            --notes "${notes}"
