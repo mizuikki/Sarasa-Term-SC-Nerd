@@ -45,7 +45,14 @@ jobs:
           if-no-files-found: error
 
       - name: Enable auto-merge for automation PR (squash)
-        if: github.event_name == 'pull_request' && github.head_ref == 'automation/upstream-update' && secrets.UPSTREAM_BOT_TOKEN != ''
+        if: github.event_name == 'pull_request' && github.head_ref == 'automation/upstream-update'
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN }}
-        run: gh pr merge --repo "${{ github.repository }}" --auto --squash --delete-branch "${{ github.event.pull_request.html_url }}"
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${GH_TOKEN:-}" ]]; then
+            echo "UPSTREAM_BOT_TOKEN not set; skipping auto-merge"
+            exit 0
+          fi
+          gh pr merge --repo "${{ github.repository }}" --auto --squash --delete-branch "${{ github.event.pull_request.html_url }}"
