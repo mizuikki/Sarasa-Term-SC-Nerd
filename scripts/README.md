@@ -108,6 +108,19 @@ scripts/verify-release-assets.sh --tag v2.4.0
 scripts/verify-release-assets.sh --tag v2.4.0 --workdir tmp/verify-v2.4.0 --keep
 ```
 
+### `install-latest-release-font.sh`
+
+Downloads a release artifact from this repo and installs (overwrites) it into either the user font directory
+or a system font directory, then refreshes fontconfig caches.
+
+Usage:
+
+```bash
+scripts/install-latest-release-font.sh
+scripts/install-latest-release-font.sh --scope system
+scripts/install-latest-release-font.sh --format ttf --hinting unhinted
+```
+
 ### `bump-upstream-versions.sh`
 
 CI-oriented helper that:
