@@ -9,3 +9,6 @@ __pycache__/
 *.7z
 *.zip
 *.tar.gz
+
+## Editor settings
+.vscode/
