@@ -15,40 +15,34 @@ def _write_text(path: pathlib.Path, data: str) -> None:
     path.write_text(data, encoding="utf-8", newline="\n")
 
 
-def _extract_insert_block(patch_text: str) -> str:
-    """
-    Extract the exact inserted list that replaces the upstream Material line.
-    This repository's patch replaces the upstream single 'Material' entry with
-    many narrowed ranges to avoid glyph overflow. That is the most likely hunk
-    to change upstream; we re-apply it by locating the block in the patch.
-    """
-    lines = patch_text.splitlines()
-    start = None
-    end = None
-    for i, line in enumerate(lines):
-        if "Material legacy" in line and line.startswith(" "):
-            # Context line in the patch hunk
-            start = i
+def _parse_material_ranges(path: pathlib.Path) -> list[tuple[int, int]]:
+    ranges: list[tuple[int, int]] = []
+    for raw in _read_text(path).splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
             continue
-        if start is not None and line.startswith("@@"):
-            # next hunk starts
-            end = i
-            break
-    if start is None:
-        raise ValueError("Could not locate Material legacy hunk in patch")
-    if end is None:
-        end = len(lines)
-    hunk = lines[start:end]
-    inserted = []
-    for line in hunk:
-        if line.startswith("+") and "MaterialDesignIconsDesktop.ttf" in line:
-            inserted.append(line[1:])
-    if not inserted:
-        raise ValueError("Could not extract inserted Material ranges from patch")
-    return "\n".join(inserted) + "\n"
+        start_s, end_s = line.split("-", 1)
+        start = int(start_s, 16)
+        end = int(end_s, 16)
+        if start > end:
+            raise ValueError(f"Invalid Material range: {line}")
+        ranges.append((start, end))
+    return ranges
 
 
-def _apply_simple_replacements(upstream_text: str, patch_text: str) -> str:
+def _render_material_block(ranges: list[tuple[int, int]]) -> str:
+    lines = ["            # FOR SARASA"]
+    for start, end in ranges:
+        lines.append(
+            "            {'Enabled': self.args.material,             'Name': \"Material\",                "
+            f"'Filename': \"materialdesign/MaterialDesignIconsDesktop.ttf\",  'Exact': True,  "
+            f"'SymStart': 0x{start:05X},'SymEnd': 0x{end:05X},'SrcStart': None,   "
+            "'ScaleRules': MDI_SCALE_LIST,   'Attributes': SYM_ATTR_DEFAULT},"
+        )
+    return "\n".join(lines)
+
+
+def _apply_simple_replacements(upstream_text: str, material_block: str) -> str:
     """
     Apply the bulk of our changes by extracting the added lines from the patch
     and inserting them around stable anchors. This avoids depending on exact
@@ -238,10 +232,9 @@ def _apply_simple_replacements(upstream_text: str, patch_text: str) -> str:
         out = out.replace(main_marker, helper_block + "\n\n" + main_marker, 1)
 
     # 13) Material icon range narrowing (replace single upstream material entry).
-    insert_material_block = _extract_insert_block(patch_text)
     out = re.sub(
         r"^\s*\{\s*'Enabled': self\.args\.material,.*'Filename': \"materialdesign/MaterialDesignIconsDesktop\.ttf\".*\}\s*,\s*$",
-        lambda m: insert_material_block.rstrip("\n"),
+        lambda m: material_block,
         out,
         flags=re.MULTILINE,
         count=1,
@@ -254,12 +247,15 @@ def main() -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--upstream", required=True, type=pathlib.Path)
     p.add_argument("--patch", required=True, type=pathlib.Path)
+    p.add_argument("--active-material", required=True, type=pathlib.Path)
     p.add_argument("--out", required=True, type=pathlib.Path)
     args = p.parse_args()
 
     upstream_text = _read_text(args.upstream)
-    patch_text = _read_text(args.patch)
-    out_text = _apply_simple_replacements(upstream_text, patch_text)
+    _ = _read_text(args.patch)
+    material_ranges = _parse_material_ranges(args.active_material)
+    material_block = _render_material_block(material_ranges)
+    out_text = _apply_simple_replacements(upstream_text, material_block)
 
     _write_text(args.out, out_text)
     return 0
@@ -267,4 +263,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -1,0 +1,17 @@
+# Active Material Design Icons ranges used to generate scripts/font-patcher.
+# Generated data may be rewritten by scripts/fit-material-budget.py.
+# sarasa_tag=v1.0.37
+# nerd_tag=v3.4.0
+# budget=65534
+# probe_font=SarasaTermSC-BoldItalic.ttf
+# probe_max_glyphs=65529
+# generated_at=2026-06-03T04:15:36.236809+00:00
+0xF0001-0xF0553
+0xF0565-0xF0E32
+0xF0E40-0xF0E85
+0xF0E8E-0xF118E
+0xF11E3-0xF126F
+0xF13FE-0xF149F
+0xF14B0-0xF14CF
+0xF14DE-0xF165C
+0xF19E8-0xF19F7

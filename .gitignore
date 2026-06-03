@@ -10,5 +10,13 @@ __pycache__/
 *.zip
 *.tar.gz
 
+## Root build workspace files copied from FontPatcher during local builds
+/bin/
+/src/
+/font-patcher
+/glyphnames.json
+/otf2otc.py
+/readme.md
+
 ## Editor settings
 .vscode/

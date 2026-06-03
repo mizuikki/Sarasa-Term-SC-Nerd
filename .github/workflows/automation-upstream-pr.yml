@@ -30,7 +30,7 @@ jobs:
           fi
 
       - name: Install deps
-        run: sudo apt update && sudo apt install -y jq unzip p7zip-full
+        run: sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools jq unzip p7zip-full
 
       - name: Bump upstream versions + refresh patcher
         id: bump
@@ -57,11 +57,5 @@ jobs:
             - Sarasa-Gothic: `${{ steps.bump.outputs.sarasa_old }}` → `${{ steps.bump.outputs.sarasa_new }}`
             - nerd-fonts: `${{ steps.bump.outputs.nerd_old }}` → `${{ steps.bump.outputs.nerd_new }}`
 
-            This PR updates `scripts/upstream-versions.env` and regenerates `scripts/font-patcher`.
+            This PR updates `scripts/upstream-versions.env`, refits the active Material icon ranges, and regenerates `scripts/font-patcher`.
             CI will build full release artifacts and auto-merge on success.
-
-      - name: Enable auto-merge (squash)
-        if: steps.cpr.outputs.pull-request-url != ''
-        env:
-          GH_TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN }}
-        run: gh pr merge --repo "${{ github.repository }}" --auto --squash --delete-branch "${{ steps.cpr.outputs.pull-request-url }}"

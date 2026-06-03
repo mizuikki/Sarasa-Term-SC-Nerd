@@ -141,8 +141,14 @@ NERD_TAG=${NERD_NEW}
 FONT_PATCHER_VERSION=${FONT_PATCHER_VERSION:-}
 EOF
 
-echo "[bump] refresh upstream + regenerate scripts/font-patcher..."
-scripts/refresh-upstream.sh
+echo "[bump] refresh upstream assets..."
+scripts/refresh-upstream.sh --fetch-only
+
+echo "[bump] fit Material icon budget..."
+scripts/fit-material-budget.py --write
+
+echo "[bump] regenerate scripts/font-patcher..."
+scripts/refresh-upstream.sh --generate-only
 
 font_patcher_version="$(grep -E '^script_version = ' "${ROOT_DIR}/scripts/font-patcher" | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/' || true)"
 [[ -n "${font_patcher_version}" ]] || die "failed to parse script_version from scripts/font-patcher"
@@ -160,4 +166,3 @@ echo "[bump] updated ${VERS_FILE}:"
 cat "${VERS_FILE}"
 
 write_outputs
-

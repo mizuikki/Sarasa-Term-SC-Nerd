@@ -7,6 +7,10 @@ name: CI - Upstream Build
       - "scripts/refresh-upstream.sh"
       - "scripts/build-release-assets.sh"
       - "scripts/font-patcher"
+      - "scripts/material-icons-active.txt"
+      - "scripts/material-icons-candidates.txt"
+      - "scripts/fit-material-budget.py"
+      - "scripts/check-glyph-budget.py"
       - "scripts/bump-upstream-versions.sh"
       - "font-patcher.patch"
       - "scripts/apply-font-patcher-patch.py"
@@ -36,6 +40,12 @@ jobs:
         run: |
           scripts/refresh-upstream.sh
           scripts/build-release-assets.sh
+
+      - name: Enforce glyph budget
+        run: |
+          python3 scripts/check-glyph-budget.py \
+            --ttf-archive dist/SarasaTermSCNerd.ttf.tar.gz \
+            --ttf-archive dist/SarasaTermSCNerd-Unhinted.ttf.tar.gz
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
