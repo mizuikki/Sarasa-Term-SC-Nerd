@@ -184,8 +184,14 @@ def fit_ranges(candidates: list[tuple[int, int]], budget: int) -> tuple[list[tup
                 write=True,
             )
             patcher = generate_patcher(workdir, manifest)
-            hinted = probe_glyphs(patcher, TMP_HINTED, workdir, "hinted")
-            unhinted = probe_glyphs(patcher, TMP_UNHINTED, workdir, "unhinted")
+            try:
+                hinted = probe_glyphs(patcher, TMP_HINTED, workdir, "hinted")
+                unhinted = probe_glyphs(patcher, TMP_UNHINTED, workdir, "unhinted")
+            except subprocess.CalledProcessError:
+                # FontForge fails before writing output once the glyph count crosses
+                # the SFNT limit, which should be treated as "over budget" during
+                # binary search instead of aborting the whole fitting run.
+                return budget + 1
         return max(hinted, unhinted)
 
     low = 0

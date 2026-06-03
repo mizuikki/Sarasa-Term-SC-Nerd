@@ -3,6 +3,9 @@ name: CI - Upstream Build
 "on":
   pull_request:
     paths:
+      - ".github/workflows/ci-upstream-build.yml"
+      - ".github/workflows/release-on-main.yml"
+      - ".github/workflows/automation-upstream-pr.yml"
       - "scripts/upstream-versions.env"
       - "scripts/refresh-upstream.sh"
       - "scripts/build-release-assets.sh"
@@ -38,7 +41,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN != '' && secrets.UPSTREAM_BOT_TOKEN || github.token }}
         run: |
-          scripts/refresh-upstream.sh
+          scripts/refresh-upstream.sh --fetch-only
+          scripts/fit-material-budget.py --write
+          scripts/refresh-upstream.sh --generate-only
           scripts/build-release-assets.sh
 
       - name: Enforce glyph budget
