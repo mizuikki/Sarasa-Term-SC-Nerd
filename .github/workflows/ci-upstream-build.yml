@@ -38,7 +38,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.UPSTREAM_BOT_TOKEN != '' && secrets.UPSTREAM_BOT_TOKEN || github.token }}
         run: |
-          scripts/refresh-upstream.sh
+          scripts/refresh-upstream.sh --fetch-only
+          scripts/fit-material-budget.py --write
+          scripts/refresh-upstream.sh --generate-only
           scripts/build-release-assets.sh
 
       - name: Enforce glyph budget
