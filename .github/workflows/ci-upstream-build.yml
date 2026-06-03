@@ -3,6 +3,9 @@ name: CI - Upstream Build
 "on":
   pull_request:
     paths:
+      - ".github/workflows/ci-upstream-build.yml"
+      - ".github/workflows/release-on-main.yml"
+      - ".github/workflows/automation-upstream-pr.yml"
       - "scripts/upstream-versions.env"
       - "scripts/refresh-upstream.sh"
       - "scripts/build-release-assets.sh"
