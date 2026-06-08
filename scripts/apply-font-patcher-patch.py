@@ -157,48 +157,46 @@ def _apply_simple_replacements(upstream_text: str, material_block: str) -> str:
         1,
     )
 
-    # 8) Override SFNT naming + unique id.
-    if "uniqueID = f\"{font.fullname}; Sarasa v{self.sourceFont.version}\"" not in out:
+    # 8) Override SFNT naming + unique id to follow Sarasa naming conventions.
+    if "compat = compatibility_name(preferredFamily, preferredStyle)" not in out:
         marker = "n.rename_font(font)\n\n"
         insert = (
             "\n"
             "        # FOR SARASA\n"
-            "        font.familyname = looseName\n"
+            "        preferredFamily = looseName\n"
             "        subFamily = self.get_subfamily()\n"
-            "        font.fullname = f\"{looseName} {en_subfamily(subFamily)}\"\n"
-            "        font.fontname = f\"{compactName}-{subFamily}\"\n"
-            "        uniqueID = f\"{font.fullname}; Sarasa v{self.sourceFont.version}\"\n"
+            "        preferredStyle = style_name(subFamily)\n"
+            "        compat = compatibility_name(preferredFamily, preferredStyle)\n"
+            "        compatFamily = compat['family']\n"
+            "        compatStyle = compat['style']\n"
+            "        fullName = full_name(compatFamily, compatStyle)\n"
+            "        uniqueID = f\"{preferredFamily} {preferredStyle}\"\n"
+            "\n"
+            "        font.familyname = compatFamily\n"
+            "        font.fullname = fullName\n"
+            "        font.fontname = postscript_name(preferredFamily, preferredStyle)\n"
             "\n"
             "        font.appendSFNTName(str(\"English (US)\"), str(\"UniqueID\"), uniqueID)\n"
             "        font.appendSFNTName(str(\"Chinese (PRC)\"), str(\"UniqueID\"), uniqueID)\n"
-            "        font.appendSFNTName(str('English (US)'), str('Fullname'), font.fullname)\n"
-            "        font.appendSFNTName(str(\"Chinese (PRC)\"), str(\"Fullname\"), zh_family(font.fullname))\n"
+            "        font.appendSFNTName(str('English (US)'), str('Fullname'), fullName)\n"
+            "        font.appendSFNTName(str(\"Chinese (PRC)\"), str(\"Fullname\"), fullName)\n"
             "\n"
-            "        font.appendSFNTName(str('English (US)'), str('Family'), font.familyname)\n"
-            "        font.appendSFNTName(str('Chinese (PRC)'), str('Family'), zh_family(font.familyname))\n"
-            "        font.appendSFNTName(str('English (US)'), str('SubFamily'), en_subfamily(subFamily))\n"
-            "        font.appendSFNTName(str('Chinese (PRC)'), str('SubFamily'), zh_subfamily(subFamily))\n"
+            "        font.appendSFNTName(str('English (US)'), str('Family'), compatFamily)\n"
+            "        font.appendSFNTName(str('Chinese (PRC)'), str('Family'), compatFamily)\n"
+            "        font.appendSFNTName(str('English (US)'), str('SubFamily'), compatStyle)\n"
+            "        font.appendSFNTName(str('Chinese (PRC)'), str('SubFamily'), compatStyle)\n"
             "\n"
-            "        font.appendSFNTName(str('English (US)'), str('Preferred Family'), font.familyname)\n"
-            "        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Family'), zh_family(font.familyname))\n"
-            "        font.appendSFNTName(str('English (US)'), str('Preferred Styles'), en_subfamily(subFamily))\n"
-            "        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Styles'), zh_subfamily(subFamily))\n"
+            "        font.appendSFNTName(str('English (US)'), str('Preferred Family'), preferredFamily)\n"
+            "        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Family'), preferredFamily)\n"
+            "        font.appendSFNTName(str('English (US)'), str('Preferred Styles'), preferredStyle)\n"
+            "        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Styles'), preferredStyle)\n"
             "\n"
         )
         if marker not in out:
             raise ValueError("Could not find rename_font marker for SFNT override insertion")
         out = out.replace(marker, marker + insert, 1)
 
-    # 9) Add Chinese version name.
-    out = out.replace(
-        "self.sourceFont.appendSFNTName(str('English (US)'), str('Version'), \"Version \" + self.sourceFont.version)\n",
-        "self.sourceFont.appendSFNTName(str('English (US)'), str('Version'), \"Version \" + self.sourceFont.version)\n\n"
-        "        # FOR SARASA: set version\n"
-        "        self.sourceFont.appendSFNTName(str('Chinese (PRC)'), str('Version'), \"版本 \" + self.sourceFont.version)\n\n",
-        1,
-    )
-
-    # 10) Force width == 1 cell.
+    # 9) Force width == 1 cell.
     out = out.replace(
         "if self.args.single or ('pa' not in stretch and '2' not in stretch) or '1' in stretch:\n"
         "            return 1\n"
@@ -210,7 +208,7 @@ def _apply_simple_replacements(upstream_text: str, material_block: str) -> str:
         1,
     )
 
-    # 11) Add get_subfamily() helper.
+    # 10) Add get_subfamily() helper.
     if "def get_subfamily(self):" not in out:
         marker = "        return None\n\n"
         insert = (
@@ -223,7 +221,7 @@ def _apply_simple_replacements(upstream_text: str, material_block: str) -> str:
             raise ValueError("Could not find insertion marker for get_subfamily")
         out = out.replace(marker, marker + insert, 1)
 
-    # 12) Inject zh/en name helpers + post_fix/hmdx at end of file, before __main__.
+    # 11) Inject naming helpers + post_fix/hmdx at end of file, before __main__.
     if "def post_fix(" not in out:
         main_marker = "if __name__ == \"__main__\":\n"
         if main_marker not in out:
@@ -231,7 +229,7 @@ def _apply_simple_replacements(upstream_text: str, material_block: str) -> str:
         helper_block = _read_text(pathlib.Path(__file__).with_name("sarasa_helpers.py"))
         out = out.replace(main_marker, helper_block + "\n\n" + main_marker, 1)
 
-    # 13) Material icon range narrowing (replace single upstream material entry).
+    # 12) Material icon range narrowing (replace single upstream material entry).
     out = re.sub(
         r"^\s*\{\s*'Enabled': self\.args\.material,.*'Filename': \"materialdesign/MaterialDesignIconsDesktop\.ttf\".*\}\s*,\s*$",
         lambda m: material_block,

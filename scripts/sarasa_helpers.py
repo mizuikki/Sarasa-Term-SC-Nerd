@@ -1,25 +1,29 @@
-def zh_family(name):
-    res = name.replace(looseName, "更纱终端书呆黑体-简")
-    res = res.replace(compactName, "更纱终端书呆黑体-简")
-    return res
-
-def en_subfamily(compact):
+def style_name(compact):
     return compact.replace("Italic", " Italic").strip()
 
-def zh_subfamily(compact):
-    sub_family_dict = {
-        "ExtraLight": "特细体",
-        "ExtraLightItalic":"特细斜体",
-        "Light":"细体",
-        "LightItalic":"细斜体",
-        "Regular":"常规体",
-        "Italic":"斜体",
-        "SemiBold":"中粗体",
-        "SemiBoldItalic":"中粗斜体",
-        "Bold":"粗体",
-        "BoldItalic":"粗斜体"
-    }
-    return sub_family_dict[compact]
+def compatibility_name(family, style):
+    if style in {"Regular", "Bold", "Italic", "Bold Italic"}:
+        return {"family": family, "style": style}
+
+    compat_style = style
+    if compat_style.startswith("Extra"):
+        compat_style = compat_style.replace("Extra", "X", 1)
+
+    if "Italic" in compat_style:
+        return {
+            "family": f"{family} {compat_style.replace('Italic', '').strip()}",
+            "style": "Italic",
+        }
+
+    return {"family": f"{family} {compat_style}", "style": "Regular"}
+
+def full_name(family, style):
+    if style == "Regular":
+        return family
+    return f"{family} {style}"
+
+def postscript_name(family, style):
+    return f"{family} {style}".replace(" ", "-")
 
 # FOR SARASA: build hdmx table
 import math
@@ -66,4 +70,3 @@ def build_hdmx(font):
 def fix_isFixedPitch(font):
     post = font["post"].__dict__
     post["isFixedPitch"] = 1
-
