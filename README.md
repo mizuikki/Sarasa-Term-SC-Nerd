@@ -1,93 +1,123 @@
-# `Sarasa Term SC Nerd` 字体
+# Sarasa Term SC Nerd
 
-## 关于
+Sarasa Term SC Nerd is a patched build of [Sarasa Term SC](https://github.com/be5invis/Sarasa-Gothic) with selected [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts) glyphs added for terminal and editor use.
 
-`Sarasa Term SC Nerd` 字体是以 [Sarasa Term
-SC](https://github.com/be5invis/Sarasa-Gothic)字体为基础，修改了[Nerd
-fonts](https://github.com/ryanoasis/nerd-fonts)字体补丁程序，然后用该程序将`Nerd
-fonts`合并入`Sarasa Term SC`, 再经过一些后处理，而最后形成的字体。该字体特别适合
-**简体中文**用户在**终端**或者**代码编辑器**中使用。
+It is designed for setups that need all of the following at once:
+- reliable 2:1 CJK and Latin alignment
+- monospaced behavior in terminals and code editors
+- Nerd Fonts symbols for prompts, statuslines, and developer tooling
 
-上游版本：
+## Highlights
 
-- Sarasa Term SC：1.0.37
-- Nerd Font: 3.4.0
-- Font Patcher: 4.20.3
+- Built on `Sarasa Term SC`, a widely used CJK programming font with strong mixed-language alignment.
+- Adds Nerd Fonts glyphs while preserving terminal-friendly spacing.
+- Includes both hinted and unhinted release artifacts.
+- Keeps the original `Sarasa Term SC` installable alongside the patched family.
+- Applies extra metadata and table fixes for better behavior on Windows and other font consumers.
+- Limits Material Design icon coverage to stay within the OpenType glyph budget.
 
-## 字体效果
+## Installation
 
-- 文字效果：以 Regular 样式为例
+### Download a release
 
-  ![文字效果](screenshots/character.png)
-- 图标效果：Starship 图标
+Download the latest assets from [Releases](https://github.com/mizuikki/Sarasa-Term-SC-Nerd/releases).
 
-  ![图标效果](screenshots/nerd.jpg)
-- 对齐效果：终端里 emacs/org-mode 中的表格对齐
+- `*.ttf`: one file per style
+- `*.ttc`: a collection containing all styles
+- `*Unhinted*`: unhinted builds for systems where hinted fonts render slowly
 
-  ![对齐效果](screenshots/align.png)
-
-## 特性
-
-- `Sarasa Term SC` 是极少数做到中文和英文 2:1 严格对齐的字体，特别适合用来写代
-  码, 以及中英文混合的字符式表格的对齐等。而且该字体字重全面，共包含十个：
-  ExtraLight, ExtraLightItalic, Light, LightItalic, Regular, Italic, SemiBold,
-  SemiBoldItalic, ExtraBold, ExtraBoldItalic.
-- `Nerd fonts` 提供了很多图标字体，特别适合各种
-  Shell(zsh/bash...)/Vim/NeoVim/Emacs/lsd/eza...的主题， 例如
-  [`Powerline`](https://github.com/powerline/powerline)，
-  [`Starship`](https://github.com/starship/starship)
-- 对一些符号进行了纵向拉伸，不会出现`Powerline`条带中高低不一，无法上下对齐的情
-  况。
-- 原始`Sarasa Term SC`字体和`Sarasa Term SC Nerd`字体可以共存，不会产生冲突。
-- 将 `OS/2` 表中的 `xAvgCharWidth` 属性进行了设置，避免了在 windows 系统下，一些
-  不支持新版本 `OS/2` 表的软件中字距不正常的问题。
-- 加入了`hdmx`表，解决了 windows 系统下的一些情况下无法严格对齐的问题。
-- 修正了`OS/2`表中的`panose`和`post`表中的`isFixedPitch`，使得字体被系统认出是等
-  宽字体。
-- 在庞大的 `material design` 图标库中，只跳跃选择一部分图标，以避免`65534`的字符
-  数硬顶。
-
-## 安装
-
-- MacOS 用户可以直接通过 cask 安装：
-  ```sh
-  brew tap laishulu/homebrew
-  brew install font-sarasa-nerd
-  ```
-- 手工下载安装：
-  - 前往 [release](https://github.com/mizuikki/Sarasa-Term-SC-Nerd/releases) 下载
-  - 每个`ttf`文件是一个字体样式，`ttc`文件是所有样式的合集。
-  
-**注意**:
-如果本字体在你的系统中渲染得慢，你需要下载安装无字形微调（`Unhinted`）版本的字体。
-
-## 使用
-
-在你的主题配置文件中，使用 `Sarasa Term SC Nerd`。
-
-## 自己生成字体
+### Homebrew
 
 ```sh
-# Install deps
-sudo apt update && sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip jq
-
-# Refresh upstream assets + regenerate scripts/font-patcher
-scripts/refresh-upstream.sh
-
-# Build release assets (hinted + unhinted) into ./dist
-scripts/build-release-assets.sh
+brew tap laishulu/homebrew
+brew install font-sarasa-nerd
 ```
 
-在 macOS 中，注意需要使用 fontforge 自带的 python
+## Usage
+
+Set your terminal, editor, or theme to use `Sarasa Term SC Nerd`.
+
+Common use cases:
+- shell prompts such as `Starship`
+- statusline-heavy terminal workflows
+- editors that rely on Nerd Fonts icons
+- mixed Chinese and English text in monospaced layouts
+
+## Screenshots
+
+Text rendering (`Regular`):
+
+![Text rendering](screenshots/character.png)
+
+Nerd Fonts icons in a prompt:
+
+![Icon rendering](screenshots/nerd.jpg)
+
+Table alignment in terminal `emacs` / `org-mode`:
+
+![Alignment example](screenshots/align.png)
+
+## Upstream Versions
+
+- Sarasa Term SC: `1.0.37`
+- Nerd Fonts: `3.4.0`
+- Font Patcher: `4.20.3`
+
+Version pins used by the current tooling also live in [scripts/upstream-versions.env](/home/mnm/code/github/Sarasa-Term-SC-Nerd/scripts/upstream-versions.env:1).
+
+## Build From Source
+
+### Requirements
+
+- `gh`
+- `python3`
+- `fontforge`
+- `python3-fontforge`
+- `fonttools` / `ttx`
+- `p7zip`
+- `unzip`
+- `tar`
+- `jq`
+
+On Ubuntu or Debian:
+
+```sh
+sudo apt update
+sudo apt install -y fontforge python3-fontforge python3-fonttools p7zip jq unzip
+```
+
+### Build release assets
+
+```sh
+scripts/refresh-upstream.sh
+scripts/build-release-assets.sh
+ls -la dist/
+```
+
+This downloads pinned upstream assets, regenerates `scripts/font-patcher`, builds hinted and unhinted outputs, and writes release archives to `dist/`.
+
+On macOS, use the Python interpreter bundled with FontForge:
 
 ```sh
 brew install fontforge
 pipenv --site-packages --python=/Applications/FontForge.app/Contents/Frameworks/Python.framework/Versions/Current/bin/python3
-
 ```
 
-在合并`material design`图标时需要注意：
-- 虽然实际上`65535`是硬顶，但是`65535`在字体处理的很多地方被作为魔法数，所以用
-  `65534`作为硬顶。
-- 同一个字体，不同字体样式的图标数不同，斜体比常规体要多。为了避免硬顶，应当根据
-  斜体图标的数量来计算。
+## Repository Layout
+
+- `scripts/`: build, refresh, verification, and release tooling
+- `dist/`: generated release archives
+- `screenshots/`: README assets
+- `font-patcher.patch`: local patch applied on top of upstream Nerd Fonts `font-patcher`
+
+More script-level details are documented in [scripts/README.md](/home/mnm/code/github/Sarasa-Term-SC-Nerd/scripts/README.md:1).
+
+## Notes
+
+- Material Design icons are intentionally subsetted. The practical glyph cap used here is `65534`, not `65535`, because `65535` is commonly treated as a sentinel value by font tooling.
+- Italic styles can contain more glyphs than regular styles, so glyph-budget fitting is based on the italic worst case.
+- If font rendering is slow on your system, prefer the unhinted release artifacts.
+
+## License
+
+See [LICENSE](/home/mnm/code/github/Sarasa-Term-SC-Nerd/LICENSE:1).

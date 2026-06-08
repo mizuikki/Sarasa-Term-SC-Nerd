@@ -132,26 +132,33 @@ index 51e3ff1..f639f3f 100755
  
 +
 +        # FOR SARASA
-+        font.familyname = looseName
++        preferredFamily = looseName
 +        subFamily = self.get_subfamily()
-+        font.fullname = f"{looseName} {en_subfamily(subFamily)}"
-+        font.fontname = f"{compactName}-{subFamily}"
-+        uniqueID = f"{font.fullname}; Sarasa v{self.sourceFont.version}"
++        preferredStyle = style_name(subFamily)
++        compat = compatibility_name(preferredFamily, preferredStyle)
++        compatFamily = compat['family']
++        compatStyle = compat['style']
++        fullName = full_name(compatFamily, compatStyle)
++        uniqueID = f"{preferredFamily} {preferredStyle}"
++
++        font.familyname = compatFamily
++        font.fullname = fullName
++        font.fontname = postscript_name(preferredFamily, preferredStyle)
 +
 +        font.appendSFNTName(str("English (US)"), str("UniqueID"), uniqueID)
 +        font.appendSFNTName(str("Chinese (PRC)"), str("UniqueID"), uniqueID)
-+        font.appendSFNTName(str('English (US)'), str('Fullname'), font.fullname)
-+        font.appendSFNTName(str("Chinese (PRC)"), str("Fullname"), zh_family(font.fullname))
++        font.appendSFNTName(str('English (US)'), str('Fullname'), fullName)
++        font.appendSFNTName(str("Chinese (PRC)"), str("Fullname"), fullName)
 +
-+        font.appendSFNTName(str('English (US)'), str('Family'), font.familyname)
-+        font.appendSFNTName(str('Chinese (PRC)'), str('Family'), zh_family(font.familyname))
-+        font.appendSFNTName(str('English (US)'), str('SubFamily'), en_subfamily(subFamily))
-+        font.appendSFNTName(str('Chinese (PRC)'), str('SubFamily'), zh_subfamily(subFamily))
++        font.appendSFNTName(str('English (US)'), str('Family'), compatFamily)
++        font.appendSFNTName(str('Chinese (PRC)'), str('Family'), compatFamily)
++        font.appendSFNTName(str('English (US)'), str('SubFamily'), compatStyle)
++        font.appendSFNTName(str('Chinese (PRC)'), str('SubFamily'), compatStyle)
 +
-+        font.appendSFNTName(str('English (US)'), str('Preferred Family'), font.familyname)
-+        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Family'), zh_family(font.familyname))
-+        font.appendSFNTName(str('English (US)'), str('Preferred Styles'), en_subfamily(subFamily))
-+        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Styles'), zh_subfamily(subFamily))
++        font.appendSFNTName(str('English (US)'), str('Preferred Family'), preferredFamily)
++        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Family'), preferredFamily)
++        font.appendSFNTName(str('English (US)'), str('Preferred Styles'), preferredStyle)
++        font.appendSFNTName(str('Chinese (PRC)'), str('Preferred Styles'), preferredStyle)
 +
          font.comment = projectInfo
          font.fontlog = projectInfo
@@ -160,10 +167,6 @@ index 51e3ff1..f639f3f 100755
              self.sourceFont.version = str(self.sourceFont.cidversion) + ";" + projectName + " " + version
          self.sourceFont.sfntRevision = None # Auto-set (refreshed) by fontforge
          self.sourceFont.appendSFNTName(str('English (US)'), str('Version'), "Version " + self.sourceFont.version)
-+
-+        # FOR SARASA: set version
-+        self.sourceFont.appendSFNTName(str('Chinese (PRC)'), str('Version'), "版本 " + self.sourceFont.version)
-+
          # The Version SFNT name is later reused by the NameParser for UniqueID
          # print("Version now is {}".format(sourceFont.version))
  
@@ -229,28 +232,32 @@ index 51e3ff1..f639f3f 100755
      for f in sourceFonts:
          f.close()
  
-+def zh_family(name):
-+    res = name.replace(looseName, "更纱终端书呆黑体-简")
-+    res = res.replace(compactName, "更纱终端书呆黑体-简")
-+    return res
-+
-+def en_subfamily(compact):
++def style_name(compact):
 +    return compact.replace("Italic", " Italic").strip()
 +
-+def zh_subfamily(compact):
-+    sub_family_dict = {
-+        "ExtraLight": "特细体",
-+        "ExtraLightItalic":"特细斜体",
-+        "Light":"细体",
-+        "LightItalic":"细斜体",
-+        "Regular":"常规体",
-+        "Italic":"斜体",
-+        "SemiBold":"中粗体",
-+        "SemiBoldItalic":"中粗斜体",
-+        "Bold":"粗体",
-+        "BoldItalic":"粗斜体"
-+    }
-+    return sub_family_dict[compact]
++def compatibility_name(family, style):
++    if style in {"Regular", "Bold", "Italic", "Bold Italic"}:
++        return {"family": family, "style": style}
++
++    compat_style = style
++    if compat_style.startswith("Extra"):
++        compat_style = compat_style.replace("Extra", "X", 1)
++
++    if "Italic" in compat_style:
++        return {
++            "family": f"{family} {compat_style.replace('Italic', '').strip()}",
++            "style": "Italic",
++        }
++
++    return {"family": f"{family} {compat_style}", "style": "Regular"}
++
++def full_name(family, style):
++    if style == "Regular":
++        return family
++    return f"{family} {style}"
++
++def postscript_name(family, style):
++    return f"{family} {style}".replace(" ", "-")
 +
 +# FOR SARASA: build hdmx table
 +import sys
