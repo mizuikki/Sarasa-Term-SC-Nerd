@@ -105,12 +105,15 @@ def _apply_simple_replacements(upstream_text: str, material_block: str) -> str:
     )
 
     # 5) Clean suffix naming to keep family names stable.
+    suffix_marker = "\n        # add mono signifier to beginning of name suffix\n"
+    if suffix_marker not in out:
+        raise ValueError("Could not find suffix naming marker")
     out = out.replace(
-        "verboseAdditionalFontNameSuffix += \" Plus Weather Icons\"\n",
-        "verboseAdditionalFontNameSuffix += \" Plus Weather Icons\"\n\n"
-        "        # FOR SARASA: clean file name\n"
+        suffix_marker,
+        "\n        # FOR SARASA: clean file name\n"
         "        additionalFontNameSuffix = \"\" + projectNameSingular\n"
-        "        verboseAdditionalFontNameSuffix = \"\" + projectNameSingular\n",
+        "        verboseAdditionalFontNameSuffix = \"\" + projectNameSingular\n"
+        + suffix_marker,
         1,
     )
     out = out.replace(
@@ -254,6 +257,7 @@ def main() -> int:
     material_ranges = _parse_material_ranges(args.active_material)
     material_block = _render_material_block(material_ranges)
     out_text = _apply_simple_replacements(upstream_text, material_block)
+    compile(out_text, str(args.out), "exec")
 
     _write_text(args.out, out_text)
     return 0
